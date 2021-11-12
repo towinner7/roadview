@@ -1,0 +1,516 @@
+
+
+        <!DOCTYPE html>
+        <html>
+        <head>
+        <meta charset="utf-8">
+        <title>DigitalPie Daum API</title>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=11"/>
+        <!--<meta name="viewport" content="initial-scale=1.0,user-scalable=no">-->
+
+        <link rel="stylesheet" href="css/style.css" type="text/css">
+        <link rel="stylesheet" href="css/CustomCSS/SP/dpmap_main.css" type="text/css">
+        <style>
+            #DIV_MapRoad {overflow:hidden;height:400px;position:relative;}
+            #DIV_MapView {width:100%;height:400px;top:0;left:0;position:absolute;z-index:1; border:0;}
+            #DIV_RoadView {width:100%;height:400px;top:0;right:0;position:absolute;z-index:0;}
+            #DIV_MapRoad.view_roadview #DIV_MapView {width:300px; top:2px; left:2px; border:1px solid #000000;}
+            #RoadOpenCloseCtrl {position:absolute;top:5px;left:207px;width:65px;height:24px;padding:2px;z-index: 1;background: #f7f7f7;border-radius: 4px;border: 1px solid #c8c8c8;box-shadow: 0px 1px #888;cursor: pointer;}
+            #RoadOpenCloseCtrl span {background: url(https://i1.daumcdn.net/localimg/localimages/07/mapapidoc/mapworker.png) no-repeat;  padding-left:23px;height:24px;font-size: 12px;display: inline-block;line-height: 2;font-weight: bold;}
+            #RoadOpenCloseCtrl.active {background: #ccc;box-shadow: 0px 1px #5F616D;border: 1px solid #7F818A;}
+            #RoadOpenCloseCtrl.active span {background: url(https://i1.daumcdn.net/localimg/localimages/07/mapapidoc/mapworker_on.png) no-repeat;color: #4C4E57;}
+            #MeasureMapView {position:absolute;top:3px;left:281px;width:52px;height:34px;padding:2px;z-index: 1;background-color:transparent;border:0px;cursor: pointer;}
+            #WalkdistMapView {position:absolute;top:3px;left:321px;width:52px;height:34px;padding:2px;z-index: 1;background-color:transparent;border:0px;cursor: pointer;}
+            #GijukdoMapView {position:absolute;top:3px;left:361px;width:52px;height:34px;padding:2px;z-index: 1;background-color:transparent;border:0px;cursor: pointer;}
+            #EraseAllMapView{position:absolute;top:3px;left:401px;width:52px;height:34px;padding:2px;z-index: 1;background-color:transparent;border:0px;cursor: pointer;}
+            #ShowHideAdminMenu{position:absolute;top:3px;left:441px;width:52px;height:34px;padding:2px;z-index: 1;background-color:transparent;border:0px;cursor: pointer;}
+            #ShowHideZont {position:absolute;top:2px;left:481px;width:26px;height:26px;padding:2px;z-index: 1;background-color:transparent;border:0px;cursor: pointer;}
+            #PrintMapView {position:absolute;top:5px;left:521px;width:26px;height:26px;padding:2px;z-index: 1;background-color:transparent;border:0px;cursor: pointer;}
+            #DIV_AdminMenu{position:fixed;top:30px;right:25px;width:230px;z-index:1;border:0;}
+
+            .zonelabel {margin-bottom: 0px;}
+            .zonelabel * {display: inline-block;vertical-align: top;}
+            .zonelabel .left {background: url("//t1.daumcdn.net/localimg/localimages/07/2011/map/storeview/tip_l.png") no-repeat;display: inline-block;height: 24px;overflow: hidden;vertical-align: top;width: 7px;}
+            .zonelabel .center {background: url("//t1.daumcdn.net/localimg/localimages/07/2011/map/storeview/tip_bg.png") repeat-x;display: inline-block;height: 24px;font-size: 14px; color:#0000ff;line-height: 24px;}
+            .zonelabel .right {background: url("//t1.daumcdn.net/localimg/localimages/07/2011/map/storeview/tip_r.png") -1px 0  no-repeat;display: inline-block;height: 24px;overflow: hidden;width: 6px;}
+
+            .zonelabel_H {margin-bottom: 0px;}
+            .zonelabel_H * {display: inline-block;vertical-align: top;}
+            .zonelabel_H .left {background: url("//t1.daumcdn.net/localimg/localimages/07/2011/map/storeview/tip_l.png") no-repeat;display: inline-block;height: 24px;overflow: hidden;vertical-align: top;width: 7px;}
+            .zonelabel_H .center {background: url("//t1.daumcdn.net/localimg/localimages/07/2011/map/storeview/tip_bg.png") repeat-x;display: inline-block;height: 24px;font-size: 14px; color:#ff0000;line-height: 24px;}
+            .zonelabel_H .right {background: url("//t1.daumcdn.net/localimg/localimages/07/2011/map/storeview/tip_r.png") -1px 0  no-repeat;display: inline-block;height: 24px;overflow: hidden;width: 6px;}
+
+        </style>
+        <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=7c3e2544a44ce4865d93b103e4743958&libraries=services" charset="utf-8"></script>
+        <script type="text/javascript" src="js/comm.js"></script>
+        <script type="text/javascript" src="js/commUtil.js"></script>
+        <script type="text/javascript" src="js/commValidation.js"></script>
+        <script type="text/javascript" src="js/dpmap_main.js?version=1.2"></script>
+        <script type="text/javascript" src="js/dhtmlxcommon.js"></script>
+        <script type="text/javascript" src="js/proj4js/proj4js-combined.js"></script>
+        <script language="javascript">
+        <!--
+            var daumMap = null; // 다음API 지도 객체
+            var daumRoad = null; //다음API 로드뷰 객체 
+            var daumGeocoder = new daum.maps.services.Geocoder(); //다음 주소-좌표간 변환 서비스 객체
+            var daumPlaces = new daum.maps.services.Places(); //다음 키워드 장소 검색 서비스 객체 
+            var daumRoadViewClient = new daum.maps.RoadviewClient(); // 좌표로부터 로드뷰 파노라마 ID를 가져올 로드뷰 클라이언트 객체 
+            var daumMarkerImg = null; // 좌표선택시 사용할 마커의 일반 이미지
+            var daumMarkerDragImg = null; // 좌표선택시 사용할 마커의 드래그 이미지
+            var daumFlagMarker = null;  // 좌표선택시 사용할 마커 객체
+            var daumSearchMarker = null; //시설물 및 주소 검색시 맵의 중앙에 표출할 마커 객체
+            var daumDeletedRangeMarker = null; //삭제된 구획의 위치를 표출할 빨간 마커 객체
+            var daumRoadWalker = null; //로드뷰에서의 현재위치를 나타내는 동동이 마커 객체
+            var arrMenuImage = new Array(); //탭메뉴의 버튼이미지 배열
+            var arrLabel = new Array(); //구획라벨 배열
+            var arrZoneLabel = new Array(); //구간 영역 다각형 및 라벨 커스텀오버레이 배열
+            var arrIcon = null; //구획아이콘 배열
+            var searchLabel = null; //지도레벨이 2이상일때 검색한 대상 구획라벨만을 출력할때 사용하는 라벨객체
+            var infoWindowLabel = new daum.maps.InfoWindow({removable:true}); //구획라벨에 대한 상세 정보를 말풍선으로 보여줄 인포윈도우 객체 생성
+            var isShowInfoWindowByMouse = false; //라벨 또는 아이콘에 Mouseover때 말풍선을 표출할 것인지 여부
+            var isShowInfoWindowByClick = true; //라벨 또는 아이콘을 Click때 말풍선을 표출할 것인지 여부
+            var strLabelHighlight = null; //하이라이트 CSS를 추가로 출력할 라벨(예:현재 검색한 구획)
+            var strLabelHighlight_Old = null; //하이라이트 CSS를 해제해야할 과거의 하이라이트 라벨(예: 이전에 검색한 구획) => CSS를 지우는 성능을 향상시키기 위해 사용
+            var strOldCycleType = "1"; //이전 조회에서 사용한 사이클 종류(1=현재분기, 2=다음분기)
+            var isProcessing = false; //웹에서 버튼을 여러번 Click할 경우 이중으로 처리되는 경우가 있어 이를 방지하기 위함 
+            var isChanging = false; //구획라벨 조회(DisplayIconLabel함수)하는 것이 중복으로 실행되지 않게 하기위한 변수 
+            var isGoToLatLng = false; //구획라벨 조회시 바로 직전 조회영역을 고려하지 않고 강제로 재출력하도록 하기 위한 변수
+            var isRoadOverlayOn = false; // 로드뷰가 Open되어 있는지 여부
+            var isAdmin = false; // 관리자인지 여부
+            var isNextViewYN = false; // 현재분기와 다음분기를 선택할 수 있는지 여부(기본은 현재분기만 볼 수 있음), 참고:단속앱에서 요청할 경우 분기선택이 없이 현재만 보여줌
+            var strNextViewPrint = ""; //지도화면에서 프린트화면으로 전달된 현재분기 또는 다음분기 값
+            var isSelectLabelYN = false; //라벨출력시 구획라벨을 구간라벨로 출력할 것인지 선택할 수 있는 기능을 사용할 것인지 여부(미사용=0, 사용=1)
+            var isDisplayApplyYN = false; //구간 또는 구획클릭시 표출되는 말풍선에서 배정차량번호(사용시간포함)를 출력할 것인지 여부(
+            var strSelectLabelPrint = ""; //지도화면에서 프린트화면으로 전달된 라벨출력시 구획라벨을 구간라벨로 출력할 것인지 여부값
+            var strOldLabelType = "";
+            var isMapInfoSignYN = true; // 표지판 관리(신설,이동)기능을 사용하는지 여부
+            var isSSEntry = false; //구획의 구간제신청인 경우 구간제신청 출력여부
+            var divMapRoad = null; // 지도와 로드뷰를 감싸고 있는 div 입니다
+            var MIN_HEIGHT_MAP = 400; //지도맵의 최소사이즈
+            var strSiteCode = "SP"; //고객 사이트 코드
+            var cntOptiones = 0;
+            var isMeasureDrawing = false; // 반경거리측정을 위해 원이 그려지고 있는 상태를 가지고 있을 변수입니다
+            var isWalkdistDrawing = false; // 도보거리측정을 위해 직선이 그려지고 있는 상태를 가지고 있을 변수입니다
+            var isWalkdistStepOneOver = false; // 도보거리측정을 위해 현재 한개 이상의 직선이 그려져 있는지 여부를 가지고 있을 변수입니다
+            var isGijukdoMapView = false; // 현재 지적도 레이어를 추가로 출력하고 있는지 여부를 가지고 있을 변수입니다
+            var DEFAULT_SEARCH_MODE = "SEARCH";
+            
+            var isMeasureMouseOverLabel = false; // 거리측정을 위해 구획라벨에 마우스가 있는지 여부를 가지고 있을 변수입니다(구획라벨 클릭시 지도클릭이벤트가 먼저 발생하고 구획라벨클릭이벤트가 뒤이어 연속적으로 발생하여 이를 구분하기 위함) 
+            var objectMeasurePosition = null; // 거리측정을 위해 그려지고 있는 원의 중심좌표 입니다
+            
+            // 반경거리측정을 위해 그려지고 있는 원의 반경을 표시할 선 객체를 생성합니다
+            var objectMeasureLine = new daum.maps.Polyline({
+                                                            strokeWeight: 3, // 선의 두께입니다
+                                                            strokeColor: '#db4040', // 선의 색깔입니다
+                                                            strokeOpacity: 0.4, // 선의 불투명도입니다 0에서 1 사이값이며 0에 가까울수록 투명합니다
+                                                            strokeStyle: 'solid' // 선의 스타일입니다
+                                                        });    
+            // 반경거리측정을 위해 그려지고 있는 원을 표시할 원 객체를 생성합니다
+            var objectMeasureCircle = new daum.maps.Circle({ 
+                                                            strokeWeight: 1, // 선의 두께입니다
+                                                            strokeColor: '#00a0e9', // 선의 색깔입니다
+                                                            strokeOpacity: 0.1, // 선의 불투명도입니다 0에서 1 사이값이며 0에 가까울수록 투명합니다
+                                                            strokeStyle: 'solid', // 선의 스타일입니다
+                                                            fillColor: '#00a0e9', // 채우기 색깔입니다
+                                                            fillOpacity: 0.2 // 채우기 불투명도입니다 
+                                                        });     
+            // 반경거리측정을 위해 그려지고 있는 원의 반경 정보를 표시할 커스텀오버레이를 생성합니다
+            var objectMeasureOverlay = new daum.maps.CustomOverlay({
+                                                            xAnchor: 0,
+                                                            yAnchor: 0,
+                                                            zIndex: 200
+                                                        });              
+            // 반경거리측정을 위해 시작지점을 표시할 동그라미 커스텀오버레이를 생성합니다
+            var objectMeasureStartDot = new daum.maps.CustomOverlay({
+                                                            content: '<span id="Measure_Start_Dot" class="circle_red"></span>',
+                                                            zIndex: 100
+                                                        });
+            // 반경거리측정을 위해 종료지점을 표시할 동그라미 커스텀오버레이를 생성합니다
+            var objectMeasureEndDot = new daum.maps.CustomOverlay({
+                                                            content: '<span id="Measure_End_Dot" class="circle_red"></span>',
+                                                            zIndex: 300
+                                                        });
+            
+            // 도보거리측정을 위해 선이 그려지고 있을때 마우스 움직임에 따라 그려질 선 객체를 생성합니다
+            var objectWalkdistMoveLine = new daum.maps.Polyline({
+                                                            strokeWeight: 3, // 선의 두께입니다 
+                                                            strokeColor: '#db4040', // 선의 색깔입니다
+                                                            strokeOpacity: 0.5, // 선의 불투명도입니다 0에서 1 사이값이며 0에 가까울수록 투명합니다
+                                                            strokeStyle: 'solid' // 선의 스타일입니다    
+                                                        });
+            //  도보거리측정을 위해 클릭한 위치를 기준으로 선을 생성하고 지도위에 표시합니다
+            var objectWalkdistClickLine;
+            // 도보거리측정을 위해 선의 거리정보를 표시할 커스텀오버레이 입니다
+            var objectWalkdistInfo; 
+            // 도보거리측정을 위해 선이 그려지고 있을때 클릭할 때마다 클릭 지점과 거리를 표시하는 커스텀 오버레이 배열입니다.
+            var objectWalkdistArrDots = {}; 
+           
+            var oldZoomLevel = -1; //바로 직전에 조회한 확대축소 레벨
+            var oldMinLat = 0; //바로 직전에 조회한 영역의 MinLat 좌표값
+            var oldMinLng = 0; //바로 직전에 조회한 영역의 MinLng 좌표값
+            var oldMaxLat = 0; //바로 직전에 조회한 영역의 MaxLat 좌표값
+            var oldMaxLng = 0; //바로 직전에 조회한 영역의 MaxLng 좌표값
+
+            for(var i=1; i<=23; i++){
+                eval("var iconType" + i + "L = new daum.maps.MarkerImage(\"img/CustomImage/SP/"+i+"_b.png\", new daum.maps.Size(10, 10), {offset: new daum.maps.Point(5, 5)});");
+                eval("var iconType" + i + "S = new daum.maps.MarkerImage(\"img/CustomImage/SP/"+i+".png\", new daum.maps.Size(6, 6), {offset: new daum.maps.Point(3, 3)});");
+            }
+
+            for(var i=91; i<99; i++){
+                eval("var iconType" + i + "L = new daum.maps.MarkerImage(\"img/CustomImage/SP/"+i+"_b.png\", new daum.maps.Size(10, 10), {offset: new daum.maps.Point(5, 5)});");
+                eval("var iconType" + i + "S = new daum.maps.MarkerImage(\"img/CustomImage/SP/"+i+".png\", new daum.maps.Size(6, 6), {offset: new daum.maps.Point(3, 3)});");
+            }            
+
+            // 최초 HTML로드시 초기화 실행
+            function OnloadMapInit(){
+                try{
+                
+                    //window의 size에 따라 지도맵 Div의 크기가 초기화.
+                    CheckResetMapSize(false);
+                    //해당 사이트의 최초 지도 중심점 으로 추출
+                    var centerXY = new daum.maps.LatLng(37.477655393776615, 127.1249578794514);
+                    //다음API 지도 객체 생성
+                    daumMap = new daum.maps.Map(
+                        document.getElementById('DIV_MapView'), // 지도를 표시할 div 
+                        { 
+                            center:centerXY, // 지도의 중심좌표
+                            level:1, // 지도의 확대 레벨
+                            mapTypeId:daum.maps.MapTypeId.ROADMAP // 지도종류(ROADMAP:일반 지도, SKYVIEW:스카이뷰 지도, HYBRID:스카이뷰에 레이블이 추가된 지도)
+                        }
+                    );
+                    //다음API 로드뷰 객체 생성(크롬에서 플래쉬 사용을 허용하지 않은 경우 에러가 발생함. 에러가 발생하더라도 다른 작업이 계속 진행하도록 하였음.)
+                    try{
+                        daumRoad = new daum.maps.Roadview(document.getElementById('DIV_RoadView')); 
+                    } catch (load_err) {
+                        alert("로드뷰 생성중 오류가 발생하였습니다.\n오류메세지:" +  load_err.message);
+                        daumRoad = null;
+                    }                    
+                    // 마우스 휠과 모바일 터치를 이용한 지도 확대, 축소를 허용한다
+                    daumMap.setZoomable(true);
+                    // 지도 타입 변경 컨트롤을 생성한다
+                    var mapTypeControl = new daum.maps.MapTypeControl();
+                    // 지도의 상단 우측에 지도 타입 변경 컨트롤을 추가한다
+                    daumMap.addControl(mapTypeControl, daum.maps.ControlPosition.TOPRIGHT);    
+                    // 지도에 확대 축소 컨트롤을 생성한다
+                    var zoomControl = new daum.maps.ZoomControl();
+                    // 지도의 우측에 확대 축소 컨트롤을 추가한다
+                    daumMap.addControl(zoomControl, daum.maps.ControlPosition.RIGHT);
+                    // 지도의 중심 좌표나 확대 수준이 변경될때 발생하는 이벤트를 등록한다 (드래그 시작 : dragstart, 드래그 종료 : dragend)
+                    daum.maps.event.addListener(daumMap, 'idle', 
+                        function () {
+                            DisplayIconLabel();
+                        }
+                    );
+                    
+                    // 지도 클릭 이벤트를 등록한다 (좌클릭 : click, 우클릭 : rightclick, 더블클릭 : dblclick)
+                    daum.maps.event.addListener(daumMap, 'click', 
+                        function (mouseEvent) {
+                            if(isRoadOverlayOn) { // 로드뷰가 Open되어 있는 경우
+                                var position = mouseEvent.latLng; // 클릭한 위치의 좌표입니다 
+                                daumRoadWalker.setPosition(position);
+                                toggleRoadview(position); // 클락한 위치를 기준으로 로드뷰를 설정합니다
+                            } else if(isAdmin && document.getElementById("IMG_latlng").alt === "좌표선택중"){ // 좌표를 등록하기위해 현재 좌표선택중인 경우
+                                SetCurrentChangePosition(mouseEvent.latLng); //wgs(다음)좌표
+                                SetCoordinateTarget(false, mouseEvent.latLng); //깃대마커를 표시
+                            } else{
+                                measureStartStop(true, mouseEvent.latLng, '');
+                            }
+                        }
+                    );
+
+                    // 거리측정을 위해 지도에 마우스무브 이벤트를 등록합니다
+                    // 거리측정을 위해 원을 그리고있는 상태에서 마우스무브 이벤트가 발생하면 그려질 원의 위치와 반경정보를 동적으로 보여주도록 합니다
+                    daum.maps.event.addListener(daumMap, 'mousemove', function (mouseEvent) {
+                        // 마우스무브 이벤트가 발생했을 때 원을 그리고있는 상태이면
+                        if (isMeasureDrawing && objectMeasurePosition != null) {
+                            var mousePosition = mouseEvent.latLng; // 마우스 커서의 현재 위치를 얻어옵니다  
+                            var linePath = [objectMeasurePosition, mousePosition];  // 그려지고 있는 선을 표시할 좌표 배열입니다. 클릭한 중심좌표와 마우스커서의 위치로 설정합니다   
+                            objectMeasureLine.setPath(linePath); // 그려지고 있는 선을 표시할 선 객체에 좌표 배열을 설정합니다
+                            var length = objectMeasureLine.getLength(); // 원의 반지름을 선 객체를 이용해서 얻어옵니다
+                            if(length > 0) {
+                                // 그려지고 있는 원의 중심좌표와 반지름입니다
+                                var circleOptions = { 
+                                    center : objectMeasurePosition, 
+                                    radius: length,                 
+                                };
+                                objectMeasureCircle.setOptions(circleOptions); // 그려지고 있는 원의 옵션을 설정합니다 
+                                var radius = Math.round(objectMeasureCircle.getRadius()); // 반경 정보를 표시할 커스텀오버레이의 내용입니다  
+                                var content = '<div class="measure_info">반경 <span class="measure_number">' + radius + '</span>m</div>';
+                                objectMeasureOverlay.setPosition(mousePosition); //// 반경 정보를 표시할 커스텀 오버레이의 좌표를 마우스커서 위치로 설정합니다
+                                objectMeasureOverlay.setContent(content); // 반경 정보를 표시할 커스텀 오버레이의 표시할 내용을 설정합니다
+                                objectMeasureCircle.setMap(daumMap); // 그려지고 있는 원을 지도에 표시합니다
+                                objectMeasureLine.setMap(daumMap); // 그려지고 있는 선을 지도에 표시합니다 
+                                objectMeasureOverlay.setMap(daumMap); // 그려지고 있는 원의 반경정보 커스텀 오버레이를 지도에 표시합니다
+                                objectMeasureStartDot.setMap(daumMap);
+                                objectMeasureEndDot.setMap(daumMap);
+                                objectMeasureEndDot.setPosition(mousePosition); // 거리측정을 위해 종료지점을 표시할 동그라미 커스텀오버레이를 현재의 마우스위치로 이동합니다
+                            } else { 
+                                objectMeasureCircle.setMap(null);
+                                objectMeasureLine.setMap(null);    
+                                objectMeasureOverlay.setMap(null);
+                                objectMeasureStartDot.setMap(null);
+                                objectMeasureEndDot.setMap(null);
+                            }
+                        } else if(isWalkdistDrawing){ // 도보거리측정을 위해 상태를 그리고있는 상태인 경우 
+                            if (isWalkdistStepOneOver){ // 지도 마우스무브 이벤트가 발생했는데 선을 그리고있는 상태이면
+                                var mousePosition = mouseEvent.latLng; // 마우스 커서의 현재 위치를 얻어옵니다
+                                var path = objectWalkdistClickLine.getPath(); // 마우스 클릭으로 그려진 선의 좌표 배열을 얻어옵니다
+                                // 마우스 클릭으로 그려진 마지막 좌표와 마우스 커서 위치의 좌표로 선을 표시합니다
+                                var movepath = [path[path.length-1], mousePosition];
+                                objectWalkdistMoveLine.setPath(movepath);    
+                                objectWalkdistMoveLine.setMap(daumMap);
+
+                                var distance = Math.round(objectWalkdistClickLine.getLength() + objectWalkdistMoveLine.getLength()); // 선의 총 거리를 계산합니다
+                                var content = '<div class="walkDotOverlay walkDistanceInfo">총거리 <span class="walk_number">' + distance + '</span>m</div>'; // 커스텀오버레이에 추가될 내용입니다
+                                showWalkDistance(content, mousePosition); // 거리정보를 지도에 표시합니다  
+                            }             
+                        }    
+                    });     
+                    // 지도에 마우스 오른쪽 클릭 이벤트를 등록합니다
+                    // 선을 그리고있는 상태에서 마우스 오른쪽 클릭 이벤트가 발생하면 선 그리기를 종료합니다
+                    daum.maps.event.addListener(daumMap, 'rightclick', function (mouseEvent) {
+                        if (isWalkdistStepOneOver) { // 지도 오른쪽 클릭 이벤트가 발생했는데 선을 그리고있는 상태이면
+                            // 마우스무브로 그려진 선은 지도에서 제거합니다
+                            objectWalkdistMoveLine.setMap(null);
+                            var path = objectWalkdistClickLine.getPath(); // 마우스 클릭으로 그린 선의 좌표 배열을 얻어옵니다
+                            if (path.length > 1) { // 선을 구성하는 좌표의 개수가 2개 이상이면
+                                // 마지막 클릭 지점에 대한 거리 정보 커스텀 오버레이를 지웁니다
+                                if (objectWalkdistArrDots[objectWalkdistArrDots.length-1].distance) {
+                                    objectWalkdistArrDots[objectWalkdistArrDots.length-1].distance.setMap(null);
+                                    objectWalkdistArrDots[objectWalkdistArrDots.length-1].distance = null;    
+                                }
+                                var distance = Math.round(objectWalkdistClickLine.getLength()); // 선의 총 거리를 계산합니다
+                                var content = getTimeWalkdistHTML(distance); // 커스텀오버레이에 추가될 내용입니다
+                                showWalkDistance(content, path[path.length-1]);  // 그려진 선의 거리정보를 지도에 표시합니다 
+                            } else {
+                                removeWalkdist(false); // 도보거리측정을 위한 지도 위에 선 및 커스텀오버레이를 지도에서 제거합니다
+                            }
+                            isWalkdistStepOneOver = false; // 상태를 false로, 그리지 않고 있는 상태로 변경합니다           
+                        }  
+                    });
+
+                    if(daumRoad != null){
+                        // 로드뷰가 초기화 된 후, 추가 이벤트를 등록한다.
+                        // 로드뷰를 상,하,좌,우,줌인,줌아웃을 할 경우 발생한다.
+                        // 로드뷰를 조작할때 발생하는 값을 받아 map walker의 상태를 변경해 준다.
+                        daum.maps.event.addListener(daumRoad, 'viewpoint_changed', 
+                            function(){
+                                // 이벤트가 발생할 때마다 로드뷰의 viewpoint값을 읽어, map walker에 반영
+                                var viewpoint = daumRoad.getViewpoint();
+                                daumRoadWalker.setAngle(viewpoint.pan);
+                            }
+                        );
+                        // 로드뷰내의 화살표나 점프를 하였을 경우 발생한다.
+                        // position값이 바뀔 때마다 map walker의 상태를 변경해 준다.
+                        daum.maps.event.addListener(daumRoad, 'position_changed', 
+                            function(){
+                                // 이벤트가 발생할 때마다 로드뷰의 position값을 읽어, map walker에 반영 
+                                var position = daumRoad.getPosition();
+                                daumRoadWalker.setPosition(position);
+                                daumMap.setCenter(position);
+                            }
+                        );
+                    }
+                    // 로드뷰 walker를 생성한다. 생성시 지도의 중심좌표를 넘긴다.
+                    daumRoadWalker = new MapWalker(daumMap.getCenter()); 
+                    // 좌표선택시 사용할 마커의 일반 이미지를 생성
+                    daumMarkerImg = new daum.maps.MarkerImage(
+                        "img/ico_map_red_b.png", // 좌표 마커이미지의 주소 
+                        new daum.maps.Size(50, 45), // 좌표 마커이미지의 크기
+                        { offset: new daum.maps.Point(15, 43) } // 좌표 마커이미지에서 마커의 좌표에 일치시킬 좌표를 설정(기본값은 이미지의 가운데 아래)
+                    );
+                    // 좌표선택시 사용할 마커의 드래그 이미지를 생성
+                    daumMarkerDragImg = new daum.maps.MarkerImage(
+                        "img/ico_map_red_drag.png", // 좌표 마커의 드래그 이미지 주소     
+                        new daum.maps.Size(50, 64), // 좌표 마커의 드래그 이미지 크기 
+                        { offset: new daum.maps.Point(15, 54) } // 좌표 마커의 드래그 이미지에서 마커의 좌표에 일치시킬 좌표를 설정(기본값은 이미지의 가운데 아래)
+                    ); 
+                    // 좌표선택시 사용할 마커 객체를 생성
+                    daumFlagMarker = new daum.maps.Marker(
+                        {
+                            map: null, // ( daumMap )
+                            position: null, // ( centerXY )
+                            draggable: true, // 좌표 마커가 드래그 가능하도록 설정합니다
+                            zIndex:500,
+                            image: daumMarkerImg // 좌표 마커이미지를 설정합니다
+                        }
+                    );
+                    // 좌표 마커에 dragstart 이벤트를 등록합니다
+                    daum.maps.event.addListener(daumFlagMarker, 'dragstart', 
+                        function() {
+                            daumFlagMarker.setImage(daumMarkerDragImg); // 좌표 마커의 드래그가 시작될 때 마커 이미지를 변경합니다
+                        }
+                    );
+                    // 좌표 마커에 dragend 이벤트를 등록합니다
+                    daum.maps.event.addListener(daumFlagMarker, 'dragend', 
+                        function() {
+                            daumFlagMarker.setImage(daumMarkerImg); // 좌표 마커의 드래그가 종료될 때 마커 이미지를 원래 이미지로 변경합니다
+                            SetCurrentChangePosition(daumFlagMarker.getPosition());
+                        }
+                    );
+                    //시설물 및 주소 검색시 맵의 중앙에 표출할 마커 객체를 생성
+                    daumSearchMarker = new daum.maps.Marker(
+                        {
+                            map: null, // ( daumMap )
+                            position: null, // ( centerXY )
+                            draggable: true, // 마커를 드래그 가능하도록 설정한다
+                            zIndex:50                        
+                        }
+                    );
+
+                    divMapRoad = document.getElementById('DIV_MapRoad'); // 지도와 로드뷰를 감싸고 있는 div 입니다
+                    DisplayIconLabel(); //최초 화면의 해당 영역에 속하는 구획라벨 조회 및 출력
+                    PreLoadMenuImg(); //화면로드시 관리자의 탭메뉴들에 대한 버튼이미지를 로드함.
+                    
+                    changeSearchSection(true); //검색시 구간선택 옵션을 사용하는 경우 초기화
+                    
+                
+                    //IE브라우즈에서 이미지버튼을 클릭할 경우 테두리가 생기는 현상을 막기 위해 임시조치
+                    document.onfocusin = InitFocusIE;
+            
+                    document.frmSearch.RangeLabel.focus();
+            
+                } catch (err) {
+                    alert("지도 생성중 오류가 발생하였습니다.\n오류메세지:" +  err.message);
+                }
+            }
+
+            //IE브라우즈에서 이미지버튼을 클릭할 경우 테두리가 생기는 현상을 막기 위해 임시조치
+            function InitFocusIE(){
+                if(event.srcElement.tagName=="A"||event.srcElement.tagName=="IMG"){
+                    document.body.focus();
+                }
+            }
+            
+            function SectionInfo(dong, code, name){ //구간정보를 담을 객체 정의
+                this.dong = dong; //DongSeqNo
+                this.code = code; //SectionNo1 + "-" + SectionNo2
+                this.name = name; //SectionLabel
+            }
+
+            var arrSearchSection = new Array(); //검색 옵션에 사용할 구간정보
+
+            function changeSearchSection(isInit){
+                if(arrSearchSection != null && arrSearchSection.length > 0){
+                    if(isInit){
+                        //최초 로드시 동선택 기능을 사용하지 않고 구간선택 기능만 사용할 경우 구간전체를 옵션에 뿌려준다.
+                        if("0" != "1" && "0" == "1"){
+                            for (var i = 0; i < arrSearchSection.length; i++) {
+                                document.frmSearch.SearchSection.options.add(new Option(arrSearchSection[i]["name"], arrSearchSection[i]["code"]));
+                            }
+                        }
+                    } else {
+                        document.frmSearch.SearchSection.options.length = 1; // "선택"옵션을 제외하고 모두 초기화
+                        var strDongSeqNo = document.frmSearch.SearchDong[document.frmSearch.SearchDong.selectedIndex].value;
+                        if(strDongSeqNo.length > 0){
+                            var intDongSeqNo = parseInt(strDongSeqNo, 10);
+                            for (var i = 0; i < arrSearchSection.length; i++) {
+                                if(arrSearchSection[i]["dong"] == intDongSeqNo){
+                                    document.frmSearch.SearchSection.options.add(new Option(arrSearchSection[i]["name"], arrSearchSection[i]["code"]));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            //회차선택이 변경되었을때 지도를 강제로 재조회함.
+            function ChangedCycleLabelType(){
+                isGoToLatLng = true;
+                DisplayIconLabel();
+                //해당 분기에 배정된 차량을 보여주는 말풍선 숨기기
+                hideInfoWindowLabel();
+            }
+            
+        //-->
+        </script>
+        </head>
+        <body onload="javascript:OnloadMapInit();"  onresize="javascript:CheckResetMapSize(false);">
+        
+        <table width="100%" height="100%" border="0" cellspacing="0" cellpadding="0" style="margin:0;padding:0;">
+            <tr valign="top">
+            
+                <td width="200px" bgcolor="#b1d98">
+                    <table width="100%" height="100%" border="0" cellspacing="0" cellpadding="0">
+                        <form id="frmSearch" name="frmSearch">
+                        <input type="hidden" name="MODE" value="FINDLABEL">
+                        <input type="hidden" name="UnitType" value="">
+                        <input type="hidden" name="Addr" value="서울 송파구">
+                        <tr><th align="center" height="61" style="height:61px;background-image:url(img/CustomImage/SP/logo.gif); background-repeat:no-repeat;">&nbsp;</th></tr>
+                        <tr valign="top">
+                            <th align="left" style="padding:0 0 0 3px;">
+                                <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-image:url(img/search_bg.gif); background-repeat:repeat-y;">
+                                    <tr height="25">
+                                        <th align="center" colspan="3" style="text-align:center; color:#182C94; font-weight:bold;">
+                                            서울 송파구
+                                        </th>
+                                    </tr>
+
+                                
+
+                                    <tr height="25">
+                                        <th align="right" width="60"><img src="img/title_range.gif"></th>
+                                        <th align="center" width="87">
+                                                
+                                            <input type="text" size="9" style="width:95%;ime-mode:active;" name="RangeLabel" value="" class="box2" onKeyPress="javascript:searchEnter('R');">
+                                        
+                                        </th>
+                                        <th align="left" width="50" style="padding:0 0 0 2px;">
+                                            <img src="img/bt_search.gif" width="34" height="18" align="absmiddle" style="cursor:hand;" border="0" onclick="javascript:searchRangeLabel();">
+                                        </th>
+                                    </tr>
+                                    <tr height="25">
+                                        <th align="right" width="60"><img src="img/input_number.gif"></th>
+                                        <th align="center" width="87">
+                                                
+                                            <input type="text" size="9" style="width:95%;ime-mode:active;" name="DetailAddr" value="" class="box2" onKeyPress="javascript:searchEnter('A');">
+                                        
+                                        </th>
+                                        <th align="left" width="50" style="padding:0 0 0 2px;">
+                                            <img src="img/bt_search.gif" width="34" height="18" align="absmiddle" style="cursor:hand;" border="0" onclick="javascript:searchAddress();">
+                                        </th>
+                                    </tr>
+                                    <tr height="25">
+                                        <th align="right" width="60"><img src="img/input_keywork.gif"></th>
+                                        <th align="center" width="87">
+                                            <input type="text" size="9" style="width:95%;ime-mode:active;" name="KeyWords" value="" class="box2" onKeyPress="javascript:searchEnter('K');">
+                                        </th>
+                                        <th align="left" width="50" style="padding:0 0 0 2px;">
+                                            <img src="img/bt_search.gif" width="34" height="18" align="absmiddle" style="cursor:hand;" border="0" onclick="javascript:searchKeyWords();">
+                                        </th>
+                                    </tr>
+                                    <tr height="30" valign="bottom">
+                                        <th align="left" colspan="3" style="text-align:left;height:20;padding:0 0 0 9px;font-weight:normal;">
+                                            &nbsp;<img src="img/arrow01.gif" width="14" height="12" align="absmiddle">&nbsp;<span class="black">검색결과</span>
+                                        </th>
+                                    </tr>
+                                    <tr>
+                                        <th align="left" colspan="3" style="width:100%;height:100%;">
+                                            <div id="DIV_SearchList" style="width:175px; height:100%; overflow-y:auto; overflow-x:hidden; border-top:1px solid #cccccc; margin:0px 0px 0px 10px;">
+                                                 <ul>
+                                                    <li style="text-align:center; color:#ff0000;font-weight:normal;"><br>검색 예 : 문정동 516</li>
+                                                </ul>
+                                                <img src="img/CustomImage/SP/sr_search_info.gif" align="absmiddle" border="0">
+                                            </div>
+                                        </th>
+                                    </tr>
+                                </table>
+                            </th>
+                        </tr>
+                        </form>
+                    </table>
+                </td>
+            
+                <td>
+                    <div id="DIV_MapRoad">
+                        <div id="DIV_RoadView"></div> <!-- 로드뷰를 표시할 div 입니다 -->
+                        <div id="DIV_MapView"></div> <!-- 지도를 표시할 div 입니다 -->
+                    </div>
+                    <div id="RoadOpenCloseCtrl" title="로드뷰열기" onclick="javascript:OpenCloseRoadView();"><span>로드뷰</span></div>
+                
+                </td>
+            </tr>
+        </table>
+        </body>
+        </html>
